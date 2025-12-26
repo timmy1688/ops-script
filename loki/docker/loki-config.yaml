@@ -1,0 +1,38 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /tmp/loki
+  storage:
+    s3:
+      endpoint: minio:9000          # MinIO 服务名（Docker 内部解析）
+      bucketnames: loki-data        # 上一步创建的 bucket
+      insecure: true                # MinIO 自签名，不用 HTTPS
+      access_key_id: minioadmin
+      secret_access_key: minioadmin
+      s3forcepathstyle: true        # 重要：MinIO Path-style
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb                   # 推荐最新 index 类型
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 720h          # 30 天保留（30d 或 720h）
+  max_query_lookback: 1440h        # 查询最大回溯时间匹配保留期
+
+compactor:
+  working_directory: /tmp/loki/compactor
+  retention_enabled: true         # 启用保留删除
+  delete_request_store: s3  #使用 S3 (MinIO) 存储删除请求标记
