@@ -23,6 +23,35 @@ certbot certonly --webroot \
 # --agree-tos            : 自动同意 Let's Encrypt 的服务条款（避免交互式确认）
 # --no-eff-email         : 不加入 EFF（电子前沿基金会）的邮件订阅列表（不接收宣传邮件）
 
+如果你想签发一个泛域名证书（即 *.wtian.cloud，可以覆盖所有一级子域名，如 api.wtian.cloud、blog.wtian.cloud、abc.wtian.cloud 等），不能使用 --webroot 方式，因为 HTTP-01 挑战无法验证通配符域名。
+必须改用 DNS-01 验证方式
+certbot certonly --manual \
+  --preferred-challenges dns \
+  -d "*.wtian.cloud" \
+  -d wtian.cloud \
+  --email 123456@qq.com \
+  --agree-tos \
+  --no-eff-email
+  
+执行过程会这样交互：
+1、Certbot 会暂停，并提示你去 DNS 控制台添加一条 TXT 记录，例如：
+--------------
+textPlease deploy a DNS TXT record under the name:
+_acme-challenge.wtian.cloud
+
+With the following value:
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+---------------
+2、登录你的域名解析提供商（比如 Cloudflare、阿里云万网、DNSPod 等），添加一条 TXT 记录：
+主机记录：_acme-challenge
+类型：TXT
+值：Certbot 给你的那串长字符串
+3、保存后等待 1-5 分钟 DNS 生效（可以用 dig TXT _acme-challenge.wtian.cloud 检查）。
+4、回车继续，Certbot 会自动验证通过，然后颁发证书
+
+
+
+
 # 证书续签
 certbot renew --webroot  \
   -w ./nginx/dist \
