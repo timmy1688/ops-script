@@ -22,3 +22,11 @@ certbot certonly --webroot \
 # --email 593817844@qq.com : 绑定邮箱，用于接收证书到期提醒和重要安全通知
 # --agree-tos            : 自动同意 Let's Encrypt 的服务条款（避免交互式确认）
 # --no-eff-email         : 不加入 EFF（电子前沿基金会）的邮件订阅列表（不接收宣传邮件）
+
+# 证书续签
+certbot renew --webroot  \
+  -w ./nginx/dist \
+  -d wtian.cloud \
+  -d www.wtian.cloud \
+  --quiet
+
