@@ -7,7 +7,7 @@
 - Kubernetes 版本 ≥ 1.24
 - Helm 3 已安装
 - OpenTelemetry Operator 已存在（通常在 `observability` 命名空间）
-- MinIO：`10.100.10.34:9000`，bucket `tempo-traces` 已创建
+- MinIO：`10.100.10.10:9000`，bucket `tempo-traces` 已创建
 - Grafana：`10.100.10.30:3000`
 - Python 业务命名空间：`devops`
 - Tempo / Collector 建议统一部署在 `observability` 命名空间
