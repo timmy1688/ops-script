@@ -1,0 +1,23 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: python-auto
+  namespace: devops   # 或你的业务 ns
+spec:
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:latest
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: "http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4318"   # http 4318 更易调试
+      - name: OTEL_SERVICE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['app']
+      - name: OTEL_RESOURCE_ATTRIBUTES
+        value: "k8s.namespace.name=$(OTEL_RESOURCE_ATTRIBUTES_NAMESPACE),deployment.environment=prod"
+      - name: OTEL_PROPAGATORS
+        value: "tracecontext,baggage"
+      - name: OTEL_TRACES_SAMPLER
+        value: "parentbased_traceidratio"
+      - name: OTEL_TRACES_SAMPLER_ARG
+        value: "1.0"   # 10%，验证时可临时改 1.0
