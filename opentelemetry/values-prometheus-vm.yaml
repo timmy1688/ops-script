@@ -1,0 +1,121 @@
+# =============================================
+# 全局开关：关闭不需要的组件（因为 Grafana 和 Alertmanager 已外部存在）
+# =============================================
+grafana:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
+# =============================================
+# Prometheus 核心配置
+# =============================================
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    #spanmetrics 它会在 metrics 数据点里嵌入 trace_id，点击即可跳转到 Tempo 对应的 Trace。
+    enableFeatures:
+      - exemplar-storage
+    additionalScrapeConfigs:
+      - job_name: "otel-spanmetrics"
+        scrape_interval: 15s
+        static_configs:
+          - targets:
+              - "otel-collector-opentelemetry-collector.observability.svc.cluster.local:8889"
+    # -----------------------------------------
+    # 必须：remote_write 到你的 VictoriaMetrics
+    # -----------------------------------------
+    remoteWrite:
+      - url: http://10.100.10.35:8427/insert/0/prometheus/api/v1/write
+
+        # 推荐加 queue 配置，防止背压或网络抖动丢数据
+        queueConfig:
+          capacity: 25000               # 队列容量
+          maxShards: 200                # 最大分片数（高并发建议 100~500）
+          minShards: 1
+          maxSamplesPerSend: 10000      # 每批最大样本数（VM 喜欢大批量）
+          batchSendDeadline: 5s
+          sampleAgeLimit: 4h            # 超过这个年龄的样本丢弃（防堆积）
+
+        # 可选：如果 VM 需要认证
+        # basicAuth:
+        #   username:
+        #     name: vm-auth-secret
+        #     key: username
+        #   password:
+        #     name: vm-auth-secret
+        #     key: password
+
+    # -----------------------------------------
+    # 强烈推荐：处理多副本去重标签（避免指标爆炸）
+    # -----------------------------------------
+    replicaExternalLabelName: "__replica__"     # 默认是 prometheus_replica，建议统一改成这个
+    replicas: 2                                 # 建议至少 2 副本高可用
+
+    # -----------------------------------------
+    # 本地存储：尽量最小化
+    # -----------------------------------------
+    retention: 1h                               # 极短保留，只留几小时 WAL
+    walCompression: true
+
+    # 完全不创建 PVC（最彻底方式，本地只用 emptyDir）
+    storageSpec: {}                             # ← 关键！空对象 = 不挂持久卷
+
+    # 如果你非要留一点本地盘做缓冲，可用下面方式（不推荐）
+    # storageSpec:
+    #   volumeClaimTemplate:
+    #     spec:
+    #       accessModes: ["ReadWriteOnce"]
+    #       resources:
+    #         requests:
+    #           storage: 2Gi
+
+    # -----------------------------------------
+    # 其他推荐优化
+    # -----------------------------------------
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+
+    # 如果你不需要自带 alerting rules（全走外部 Alertmanager）
+    # ruleSelectorNilUsesHelmValues: false
+
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1500m
+        memory: 4Gi
+
+# =============================================
+# 其他组件（按需开启，推荐全开采集能力）
+# =============================================
+prometheusOperator:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+# 如果你集群里已有，可关闭
+defaultRules:
+  create: false          # 保留默认的规则（CPU/内存/磁盘等告警规则）
+
+# 如果你想禁用部分默认采集，可在这里关
+coreDns:
+  enabled: true
+kubeProxy:
+  enabled: true
+kubeApiserver:
+  enabled: true         # 采集 kube-apiserver 指标（需认证）
+
+# =============================================
+# 禁用 pushgateway（通常不需要）
+# =============================================
+prometheus-pushgateway:
+  enabled: false
