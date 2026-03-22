@@ -1,0 +1,37 @@
+tempo:
+  ingester:
+    max_block_duration: 5m
+    complete_block_timeout: 15m
+
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo-traces
+        endpoint: 10.100.10.100:9000
+        insecure: true
+        forcepathstyle: true
+        access_key: minioadmin
+        secret_key: minioadmin
+      wal:
+        path: /var/tempo/wal
+
+  server:
+    http_listen_port: 3200
+
+  overrides:
+    defaults: {}
+
+resources:
+  limits:
+    cpu: 2
+    memory: 4Gi
+  requests:
+    cpu: 1
+    memory: 2Gi
+
+service:
+  type: NodePort
+
+persistence:
+  enabled: false
