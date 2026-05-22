@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  dufs:
+    image: dockerproxy.net/sigoden/dufs:latest
+    container_name: dufs_server
+    restart: always
+    ports:
+      - "5111:5000"
+    volumes:
+      - /data/dufs:/data
+    command: >
+      /data
+      -A
+      -a admin:123456@/:rw
+      -a read:123456@/:ro
